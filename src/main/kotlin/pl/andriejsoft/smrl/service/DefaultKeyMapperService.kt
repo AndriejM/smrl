@@ -2,8 +2,10 @@ package pl.andriejsoft.smrl.service
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
+import pl.andriejsoft.smrl.model.Link
+import pl.andriejsoft.smrl.model.repositories.LinkRepository
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 
 @Component
 class DefaultKeyMapperService : KeyMapperService {
@@ -11,25 +13,23 @@ class DefaultKeyMapperService : KeyMapperService {
     @Autowired
     lateinit var converter: KeyConverterService
 
-    val sequence = AtomicLong(10000000L)
+    @Autowired
+    lateinit var repo: LinkRepository
+
 
     private val map: MutableMap<Long, String> = ConcurrentHashMap();
 
-    override fun add(link: String): String {
-        val id = sequence.getAndIncrement()
-        val key = converter.idToKey(id)
-        map.put(id, link)
-        return key
-    }
+    @Transactional
+    override fun add(link: String) = converter.idToKey(repo.save(Link(link)).id)
 
 
     override fun getLink(key: String) : KeyMapperService.Get {
-        val id = converter.keyToId(key)
-        val result = map[id]
-        if (result == null) {
-            return KeyMapperService.Get.NotFound(key)
+        val result = repo.findById(converter.keyToId(key))
+        return if (result.isPresent) {
+            KeyMapperService.Get.Link(result.get().text)
         } else {
-            return KeyMapperService.Get.Link(result)
-       }
+            KeyMapperService.Get.NotFound(key);
+        }
+
     }
 }
