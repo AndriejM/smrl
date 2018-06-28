@@ -68,4 +68,10 @@ class RedirectControllerTest {
                 andExpect(MockMvcResultMatchers.status().
                         `is`(NOT_FOUND))
     }
+
+    @Test
+    fun homeWorksFine() {
+        mockMvc.perform(MockMvcRequestBuilders.get("/"))
+                .andExpect(MockMvcResultMatchers.view().name("home"))
+    }
 }
